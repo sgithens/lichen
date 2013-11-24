@@ -1,0 +1,42 @@
+<html>
+<head>
+<link rel="stylesheet" href="/static/codemirror/lib/codemirror.css">
+<link rel="stylesheet" href="/static/codemirror/addon/display/fullscreen.css">
+<link rel="stylesheet" href="/static/codemirror/addon/dialog/dialog.css">
+<script src="/static/jquery.js"></script>
+<script src="/static/codemirror/lib/codemirror.js"></script>
+<script src="/static/codemirror/mode/javascript/javascript.js"></script>
+<script src="/static/codemirror/keymap/emacs.js"></script>
+<script src="/static/codemirror/addon/display/fullscreen.js"></script>
+<script src="/static/codemirror/addon/edit/matchbrackets.js"></script>
+<script src="/static/codemirror/addon/comment/comment.js"></script>
+<script src="/static/codemirror/addon/dialog/dialog.js"></script>
+<script src="/static/codemirror/addon/search/searchcursor.js"></script>
+<script src="/static/codemirror/addon/search/search.js"></script>
+<style type="text/css">
+// .CodeMirror {border: 1px solid black; font-size:13px}
+</style>
+</head>
+<body>
+<form><textarea id="code" name="code">{{editContent}}</textarea></form>
+<script>
+var filePath = "{{filePath}}";
+var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+    lineNumbers: true,
+    fullScreen: true,
+    keyMap: "emacs"
+});
+CodeMirror.commands.save = function() {
+    var elt = editor.getWrapperElement();
+    elt.style.background = "#def";
+    setTimeout(function() { elt.style.background = ""; }, 300);
+    var curText = editor.getValue();
+    $.ajax("/edit?file="+filePath, {
+        data: curText, 
+        contentType: "text/plain",
+        type: "POST"
+    });
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+#!/bin/bash
+
+fullFilePath=$(realpath $1)
+echo "Going to open with lichen: $fullFilePath"
+launchURL="http://localhost:3000/edit?file=$fullFilePath"
+echo "With launchURL: $launchURL"
+firefox --new-window $launchURL
