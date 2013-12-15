@@ -1,0 +1,55 @@
+<html>
+<head>
+<link rel="stylesheet" href="http://codemirror.net/lib/codemirror.css">
+<script src="http://codemirror.net/lib/codemirror.js"></script>
+<script src="http://codemirror.net/addon/runmode/runmode.js"></script>
+<script src="http://codemirror.net/mode/javascript/javascript.js"></script>
+</head>
+<body>
+Fluid Doc
+<h2>Defaults Blocks</h2>
+<ul>
+{{#defaults}}
+<li><a href="#{{name}}">{{name}}</a></li>
+{{/defaults}}
+</ul>
+<h2>Functions</h2>
+<ul>
+{{#functions}}
+<li><a href="#{{name}}">{{name}}</a></li>
+{{/functions}}
+</ul>
+
+{{#defaults}}
+<h3><a name="{{name}}">{{name}}</a></h3>
+<ul>
+<li>Type: {{type}}</li>
+<li>File: {{filename}}:{{linenum}}</li>
+</ul>
+<p>{{{doc}}}</p>
+<textarea style="display:none;" id="hidden-source-{{linenum}}">{{{source}}}</textarea>
+<pre id="source-{{linenum}}" class="cm-s-default"></pre>
+<script>
+CodeMirror.runMode(document.getElementById("hidden-source-{{linenum}}").value,
+    "application/javascript", document.getElementById("source-{{linenum}}"));
+</script>
+{{/defaults}}
+
+{{#functions}}
+<h3><a name="{{name}}">{{name}}</a></h3>
+<ul>
+<li>Type: {{type}}</li>
+<li>File: {{filename}}:{{linenum}}</li>
+</ul>
+<p>{{{doc}}}</p>
+<textarea style="display:none;" id="hidden-source-{{linenum}}">{{{source}}}</textarea>
+<pre id="source-{{linenum}}" class="cm-s-default"></pre>
+<script>
+CodeMirror.runMode(document.getElementById("hidden-source-{{linenum}}").value,
+    "application/javascript", document.getElementById("source-{{linenum}}"));
+</script>
+{{/functions}}
+
+
+</body>
+</html>

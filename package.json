@@ -15,7 +15,11 @@
         "kettle": "git://github.com/fluid-project/kettle.git#4cfab97dc18c20f4e154f932f8b9dcef0cfcea57",
         "node-static": "0.7.1",
         "express": "3.x",
-        "me2": ""
+        "me2": "",
+        "underscore": "1.5.2",
+        "esprima": "1.0.4",
+        "optimist": "0.6.0",
+        "mu2": ""
     },
     "devDependencies": {
         "jqUnit": "git://github.com/fluid-project/node-jqUnit.git#e9bf72445bd343a4f3aabe3ba96a1087d3498612"
