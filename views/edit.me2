@@ -24,7 +24,9 @@ var filePath = "{{filePath}}";
 var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
     lineNumbers: true,
     fullScreen: true,
-    keyMap: "emacs"
+    keyMap: "emacs",
+    tabSize: 4,
+    electricChars: false
 });
 CodeMirror.commands.save = function() {
     var elt = editor.getWrapperElement();

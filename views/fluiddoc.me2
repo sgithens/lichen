@@ -7,17 +7,31 @@
 </head>
 <body>
 Fluid Doc
-<h2>Defaults Blocks</h2>
+<a name="top"></a>
+
+<ul>
+<li><a href="#defaults-listing">Defaults Block List</a></li>
+<li><a href="#function-listing">Function List</a></li>
+<li><a href="#non-api-function-listing">Internal Non-API Function List</a></li>
+</ul>
+
+<h2><a name="defaults-listing">Defaults Blocks</a></h2>
 <ul>
 {{#defaults}}
 <li><a href="#{{name}}">{{name}}</a></li>
 {{/defaults}}
 </ul>
-<h2>Functions</h2>
+<h2><a name="function-listing">Functions</a></h2>
 <ul>
 {{#functions}}
 <li><a href="#{{name}}">{{name}}</a></li>
 {{/functions}}
+</ul>
+<h2><a name="non-api-function-listing">Non API Functions</a></h2>
+<ul>
+{{#non-api-functions}}
+<li><a href="#{{name}}">{{name}}</a></li>
+{{/non-api-functions}}
 </ul>
 
 {{#defaults}}
@@ -26,13 +40,14 @@ Fluid Doc
 <li>Type: {{type}}</li>
 <li>File: {{filename}}:{{linenum}}</li>
 </ul>
-<p>{{{doc}}}</p>
+<p><pre>{{{doc}}}</pre></p>
 <textarea style="display:none;" id="hidden-source-{{linenum}}">{{{source}}}</textarea>
 <pre id="source-{{linenum}}" class="cm-s-default"></pre>
 <script>
 CodeMirror.runMode(document.getElementById("hidden-source-{{linenum}}").value,
     "application/javascript", document.getElementById("source-{{linenum}}"));
 </script>
+<a href="#top">back to top</a>
 {{/defaults}}
 
 {{#functions}}
@@ -41,14 +56,31 @@ CodeMirror.runMode(document.getElementById("hidden-source-{{linenum}}").value,
 <li>Type: {{type}}</li>
 <li>File: {{filename}}:{{linenum}}</li>
 </ul>
-<p>{{{doc}}}</p>
+<p><pre>{{{doc}}}</pre></p>
 <textarea style="display:none;" id="hidden-source-{{linenum}}">{{{source}}}</textarea>
 <pre id="source-{{linenum}}" class="cm-s-default"></pre>
 <script>
 CodeMirror.runMode(document.getElementById("hidden-source-{{linenum}}").value,
     "application/javascript", document.getElementById("source-{{linenum}}"));
 </script>
+<a href="#top">back to top</a>
 {{/functions}}
+
+{{#non-api-functions}}
+<h3><a name="{{name}}">{{name}}</a></h3>
+<ul>
+<li>Type: {{type}}</li>
+<li>File: {{filename}}:{{linenum}}</li>
+</ul>
+<p><pre>{{{doc}}}</pre></p>
+<textarea style="display:none;" id="hidden-source-{{linenum}}">{{{source}}}</textarea>
+<pre id="source-{{linenum}}" class="cm-s-default"></pre>
+<script>
+CodeMirror.runMode(document.getElementById("hidden-source-{{linenum}}").value,
+    "application/javascript", document.getElementById("source-{{linenum}}"));
+</script>
+<a href="#top">back to top</a>
+{{/non-api-functions}}
 
 
 </body>

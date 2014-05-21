@@ -26,6 +26,12 @@ lichen.astTypes = {
     FLUID_DEMANDS: "fluid demands"
 };
 
+// To distinguish api vs unsupported functions etc etc.
+lichen.apiStatus = {
+    API: "api",
+    UNSUPPORTED: "unsupported"
+};
+
 /**
  * Can be passed to lichen.doAstNode in order to generate ctags style output
  * of the source file.
@@ -59,13 +65,39 @@ lichen.getDottedName = function(astnode) {
  * From the esprima parse, get the doc comment if there is one (else empty 
  * string), for the function or thing that starts on the line passed in.
  */
-lichen.getAstDocComment = function(ast, functionLine) {
+lichen.getAstDocComment = function(ast, functionLine, info) {
     var togo = "";
-    // TODO: Cache this eventually or something
-    for (var i in ast.comments) {
-        var c = ast.comments[i];
-        if (c.type === "Block" && c.loc.end.line === functionLine-1) {
-            togo = c.value.replace(/\n\s*\*/g, "\n").replace(/^\s*\*/g,"");
+
+    // There is sometimes whitespace/blank lines between a doc comment and it's
+    // corresponding function, so we'll walk back any blank lines and check 
+    // those.
+    var commentLine = functionLine-1;
+    while (togo === "") {
+        // TODO: Cache/Hash this eventually, rather than loop through each time.
+        for (var i in ast.comments) {
+            var c = ast.comments[i];
+            if (c.type === "Block" && c.loc.end.line === commentLine) {
+                // Handle the cases for * at the beginning of a line
+                togo = c.value.replace(/\n\s*\*/g, "\n").replace(/^\s*\*/g,"");
+                // Handle the case for a * left over from a **/ at the end.
+                togo = togo.replace(/ \*$/, "");
+            }
+            else if (c.type === "Line" && c.loc.end.line === commentLine) {
+                togo = c.value;
+            }
+        }
+        // If we didn't find a comment, and the line we thought it would be 
+        // on is all whitespace, see if we can go up a line, otherwise quit.
+        if (togo === "" && /^\s*$/.test(info.lines[commentLine-1])) {
+            if (commentLine-1 >= 0) {
+                commentLine--;
+            }
+            else {
+                break;
+            }
+        }
+        else {
+            break;
         }
     }
     return togo;
@@ -101,8 +133,9 @@ lichen.doAstNode = function(func, ast, info, depth, rootAst) {
             name: ast.id.name, 
             linenum: ast.id.loc.start.line,
             type: lichen.astTypes.VARIABLE,
-            doc: lichen.getAstDocComment(rootAst, ast.id.loc.start.line),
-            source: ""
+            doc: lichen.getAstDocComment(rootAst, ast.id.loc.start.line, info),
+            source: "",
+            status: lichen.apiStatus.UNSUPPORTED
         }));
     }
     else if (ast && ast.type && ast.type === "ExpressionStatement" &&
@@ -111,14 +144,15 @@ lichen.doAstNode = function(func, ast, info, depth, rootAst) {
             ast.expression.callee.computed === false &&
             ast.expression.callee.object.name === "fluid" &&
             ast.expression.callee.property.name === "defaults") {
-        var start = ast.expression.callee.object.loc.start.line;
-        var end = ast.expression.callee.object.loc.end.line;
+        var start = ast.expression.loc.start.line;
+        var end = ast.expression.loc.end.line;
         func(_.extend(payload, { 
             name: ast.expression.arguments[0].value, 
             linenum: start,
             type: lichen.astTypes.FLUID_DEFAULTS,
-            doc: lichen.getAstDocComment(rootAst, start),
-            source: lichen.getSourceLines(start, end, info)
+            doc: lichen.getAstDocComment(rootAst, start, info),
+            source: lichen.getSourceLines(start, end, info),
+            status: lichen.apiStatus.API
         }));
     }
     else if (ast && ast.type && ast.type === "ExpressionStatement" &&
@@ -133,8 +167,9 @@ lichen.doAstNode = function(func, ast, info, depth, rootAst) {
             name: ast.expression.arguments[0].value,
             linenum: start,
             type: lichen.astTypes.FLUID_DEMANDS,
-            doc: lichen.getAstDocComment(rootAst, start),
-            source: lichen.getSourceLines(start, end, info)
+            doc: lichen.getAstDocComment(rootAst, start, info),
+            source: lichen.getSourceLines(start, end, info),
+            status: lichen.apiStatus.API
         }));
     }
     else if (ast && ast.type && ast.type === "ExpressionStatement" &&
@@ -143,13 +178,20 @@ lichen.doAstNode = function(func, ast, info, depth, rootAst) {
             ast.expression.right.type === "FunctionExpression") {
         var start = ast.expression.loc.start.line;
         var end = ast.expression.loc.end.line;
-        func(_.extend(payload, { 
+        var curnode = _.extend(payload, { 
             name: lichen.getDottedName(ast.expression.left),
             linenum: ast.expression.loc.start.line,
             type: lichen.astTypes.FUNCTION,
-            doc: lichen.getAstDocComment(rootAst, ast.expression.loc.start.line),
+            doc: lichen.getAstDocComment(rootAst, ast.expression.loc.start.line, info),
             source: lichen.getSourceLines(start, end, info)
-        }));
+        });
+        if (/non-api/i.test(curnode.doc)) {
+            curnode.status = lichen.apiStatus.UNSUPPORTED;
+        }
+        else {
+            curnode.status = lichen.apiStatus.API;
+        }
+        func(curnode);
     }
     if (typeof(ast) === 'object') {
         for (i in ast) {
@@ -175,19 +217,25 @@ var analyzeFluidSourcefile = function(filename, astfunc) {
     }
     lichen.doAstNode(visiter, ast, info, 1, ast);
 
-    var out = _.findWhere(nodes, {name: "fluid.setLogging"});
-    //console.log(out);
-    var start = out.node.loc.start.line;
-    var end = out.node.loc.end.line;
-    //console.log(out.node.loc.start.line + " : " + out.node.loc.end.line);
-    console.log(out);
-    //console.log(fluid.prettyPrintJSON(out));
     mu.root = __dirname + "/views";
     
+    var prepobj = function(nodes, search) {
+        var togo = _.where(nodes, search);
+        togo = _.sortBy(togo, function(n) { return n.name; });
+        return togo;
+    };
+
     var muc = {
-        "defaults": _.where(nodes, {type: lichen.astTypes.FLUID_DEFAULTS}),
-        "demands": _.where(nodes, {type: lichen.astTypes.FLUID_DEMANDS}),
-        "functions": _.where(nodes, {type: lichen.astTypes.FUNCTION})
+        "defaults": prepobj(nodes, {type: lichen.astTypes.FLUID_DEFAULTS}),
+        "demands": prepobj(nodes, {type: lichen.astTypes.FLUID_DEMANDS}),
+        "functions": prepobj(nodes, {
+            type: lichen.astTypes.FUNCTION,
+            status: lichen.apiStatus.API
+        }),
+        "non-api-functions": prepobj(nodes, {
+            type: lichen.astTypes.FUNCTION,
+            status: lichen.apiStatus.UNSUPPORTED
+        })
     }
     var stream = mu.compileAndRender("fluiddoc.me2", muc);
     var filestream = fs.createWriteStream("./doc.html");
