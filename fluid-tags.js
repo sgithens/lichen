@@ -200,7 +200,7 @@ lichen.doAstNode = function(func, ast, info, depth, rootAst) {
     }
 };
 
-var analyzeFluidSourcefile = function(filename, astfunc) {
+var analyzeFluidSourcefile = function(filename, outfile, astfunc) {
     var path = filename.split("/");
     var info = {filename:path[path.length-1]};
     code = fs.readFileSync(filename, {encoding:"utf8"});
@@ -238,17 +238,19 @@ var analyzeFluidSourcefile = function(filename, astfunc) {
         })
     }
     var stream = mu.compileAndRender("fluiddoc.me2", muc);
-    var filestream = fs.createWriteStream("./doc.html");
+    var filestream = fs.createWriteStream(outfile);
  
     util.pump(stream, filestream);
     
 };
 
-filenames = process.argv.slice(2);
-for (idx in filenames) {
-    if (filenames[idx].indexOf("-") !== 0) {
-        analyzeFluidSourcefile(filenames[idx], lichen.fluidTagsMaker);
-    }
-}
+//filenames = process.argv.slice(2);
+//for (idx in filenames) {
+//    if (filenames[idx].indexOf("-") !== 0) {
+//        analyzeFluidSourcefile(filenames[idx], lichen.fluidTagsMaker);
+//    }
+//}
+args = process.argv.slice(2);
+analyzeFluidSourcefile(args[0], args[1], lichen.fluidTagsMaker);
 
 })();
