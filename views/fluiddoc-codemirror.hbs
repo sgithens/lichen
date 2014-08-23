@@ -1,0 +1,56 @@
+<html>
+<head>
+<link rel="stylesheet" href="http://codemirror.net/lib/codemirror.css">
+<script src="http://codemirror.net/lib/codemirror.js"></script>
+<script src="http://codemirror.net/addon/runmode/runmode.js"></script>
+<script src="http://codemirror.net/mode/javascript/javascript.js"></script>
+</head>
+<body>
+Fluid Doc
+<a name="top"></a>
+
+<ul>
+<li><a href="#defaults-listing">Defaults Block List</a></li>
+<li><a href="#function-listing">Function List</a></li>
+{{#if non-api-functions}}
+<li><a href="#non-api-function-listing">Internal Non-API Function List</a></li>
+{{/if}}
+</ul>
+
+<h2><a name="defaults-listing">Defaults Blocks</a></h2>
+<ul>
+{{#defaults}}
+<li><a href="#{{name}}">{{name}}</a></li>
+{{/defaults}}
+</ul>
+<h2><a name="function-listing">Functions</a></h2>
+<ul>
+{{#functions}}
+<li><a href="#{{name}}">{{name}}</a></li>
+{{/functions}}
+</ul>
+{{#if non-api-functions}}
+<h2><a name="non-api-function-listing">Non API Functions</a></h2>
+<ul>
+{{#non-api-functions}}
+<li><a href="#{{name}}">{{name}}</a></li>
+{{/non-api-functions}}
+</ul>
+{{/if}}
+
+{{#each defaults}}
+    {{> functionDoc}}
+{{/each}}
+
+{{#functions}}
+    {{> functionDoc}}
+{{/functions}}
+
+{{#if non-api-functions}}
+{{#non-api-functions}}
+    {{> functionDoc}}
+{{/non-api-functions}}
+{{/if}}
+
+</body>
+</html>

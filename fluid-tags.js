@@ -11,7 +11,8 @@ var fluid = require("infusion"),
     fs = require("fs"),
     _ = require("underscore"),
     util = require("util"),
-    mu = require("mu2"),
+    handlebars = require("handlebars"),
+    argparse = require("argparse"),
     lichen = fluid.registerNamespace("lichen");
 
 var tags = [];
@@ -200,7 +201,10 @@ lichen.doAstNode = function(func, ast, info, depth, rootAst) {
     }
 };
 
-var analyzeFluidSourcefile = function(filename, outfile, astfunc) {
+var analyzeFluidSourcefile = function(filename, outfile, astfunc, options) {
+    if (!options) options = {};
+    var theme = options.theme || 'fluiddoc-codemirror';
+
     var path = filename.split("/");
     var info = {filename:path[path.length-1]};
     code = fs.readFileSync(filename, {encoding:"utf8"});
@@ -217,40 +221,62 @@ var analyzeFluidSourcefile = function(filename, outfile, astfunc) {
     }
     lichen.doAstNode(visiter, ast, info, 1, ast);
 
-    mu.root = __dirname + "/views";
-    
     var prepobj = function(nodes, search) {
         var togo = _.where(nodes, search);
         togo = _.sortBy(togo, function(n) { return n.name; });
         return togo;
     };
 
-    var muc = {
+    var context = {
         "defaults": prepobj(nodes, {type: lichen.astTypes.FLUID_DEFAULTS}),
         "demands": prepobj(nodes, {type: lichen.astTypes.FLUID_DEMANDS}),
         "functions": prepobj(nodes, {
             type: lichen.astTypes.FUNCTION,
             status: lichen.apiStatus.API
-        }),
-        "non-api-functions": prepobj(nodes, {
-            type: lichen.astTypes.FUNCTION,
-            status: lichen.apiStatus.UNSUPPORTED
         })
     }
-    var stream = mu.compileAndRender("fluiddoc.me2", muc);
-    var filestream = fs.createWriteStream(outfile);
- 
-    util.pump(stream, filestream);
-    
+    if (options.nonapi) {
+        context["non-api-functions"] = prepobj(nodes, {
+            type: lichen.astTypes.FUNCTION,
+            status: lichen.apiStatus.UNSUPPORTED
+        });
+    }
+    var sourceTemplateFile = theme + ".hbs";
+    var functionDocTemplateFile = theme + "-function.hbs";
+    var source = fs.readFileSync(__dirname + "/views/" + sourceTemplateFile, {encoding: 'utf8'}); 
+    var functionDocSrc = fs.readFileSync(__dirname + "/views/" + functionDocTemplateFile, 
+        {encoding: 'utf8'}); 
+    var template = handlebars.compile(source);
+    handlebars.registerPartial("functionDoc", functionDocSrc);
+    var result = template(context);
+    fs.writeFile(outfile, result);
 };
 
-//filenames = process.argv.slice(2);
-//for (idx in filenames) {
-//    if (filenames[idx].indexOf("-") !== 0) {
-//        analyzeFluidSourcefile(filenames[idx], lichen.fluidTagsMaker);
-//    }
-//}
-args = process.argv.slice(2);
-analyzeFluidSourcefile(args[0], args[1], lichen.fluidTagsMaker);
+var parser = new argparse.ArgumentParser({
+    addHelp: true,
+    description: "Doc utilities for Fluid and Javascript"
+});
+parser.addArgument(
+    ['--nonapi'],
+    {
+        help: "Include non-api functions",
+        nargs: 0
+    }
+);
+parser.addArgument(
+    ['--theme'],
+    {
+        help: "Use an option theme, ex. --theme plaincode",
+        nargs: 1
+    }
+);
+parser.addArgument(
+    ['inputfile']
+);
+parser.addArgument(
+    ['outputfile']
+);
+var args = parser.parseArgs();
 
+analyzeFluidSourcefile(args.inputfile, args.outputfile, lichen.fluidTagsMaker, args);
 })();
