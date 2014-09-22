@@ -43,10 +43,6 @@ lichen.fluidTagsMaker = function(info) {
         "language:JavaScript"]);
 };
 
-lichen.jsonAstExplorer = function(info) {
-    var nodes = [];
-
-};
 
 /**
  * For a node from an esprima parser ast, determines the full dotted name for 
@@ -204,7 +200,34 @@ lichen.doAstNode = function(func, ast, info, depth, rootAst) {
 var analyzeFluidSourcefile = function(filename, outfile, astfunc, options) {
     if (!options) options = {};
     var theme = options.theme || 'fluiddoc-codemirror';
+    if (options.dir) {
+        var context = {};
+        var files = fs.readdirSync(filename);    
+        for (var i = 0; i < files.length; i++) {
+            if (files[i].match(/.js$/)) {
+                var nextDoc = processJavaScriptSource(filename+"/"+files[i], astfunc, options);
+                context = fluid.merge({
+                    defaults: fluid.arrayConcatPolicy,
+                    demands: fluid.arrayConcatPolicy,
+                    functions: fluid.arrayConcatPolicy
+                },
+                context, nextDoc);
+            }
+        }
+    } 
+    else {
+        var context = processJavaScriptSource(filename, astfunc, options);
+    }
+    writeFluidTags(context, theme, outfile);
+};
 
+/**
+ * Parse a given javascript/json source part using esprima and build
+ * up a list of tag objects based on our json format. Returns the 
+ * built up object for the given file.
+ */    
+var processJavaScriptSource = function(filename, astfunc, options) {
+    console.log("Process: " + filename);
     var path = filename.split("/");
     var info = {filename:path[path.length-1]};
     code = fs.readFileSync(filename, {encoding:"utf8"});
@@ -241,6 +264,14 @@ var analyzeFluidSourcefile = function(filename, outfile, astfunc, options) {
             status: lichen.apiStatus.UNSUPPORTED
         });
     }
+    return context;
+};
+
+/**
+ * Taking a builtup context of parsed and analyzed function/variable 
+ * documentation, write the output to a file.
+ */
+var writeFluidTags = function(context, theme, outfile) {
     var sourceTemplateFile = theme + ".hbs";
     var functionDocTemplateFile = theme + "-function.hbs";
     var source = fs.readFileSync(__dirname + "/views/" + sourceTemplateFile, {encoding: 'utf8'}); 
@@ -262,6 +293,14 @@ parser.addArgument(
         help: "Include non-api functions",
         nargs: 0
     }
+);
+parser.addArgument(
+    ['--dir'],
+    {
+        help: "Process all javascript files in directory. (Takes a " +
+            + "directory instead of a input filename)",
+        nargs: 0
+    }    
 );
 parser.addArgument(
     ['--theme'],
